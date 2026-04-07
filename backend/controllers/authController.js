@@ -4,45 +4,27 @@ const { v4: uuidv4 } = require('uuid');
 const User = require('../models/User');
 const Audit = require('../models/Audit');
 
-function resolveJwtExpiry() {
-  const rawExpiry = String(process.env.JWT_EXPIRY ?? '').trim().replace(/^['\"]|['\"]$/g, '');
+function getJwtExpiry() {
+  const expiry = process.env.JWT_EXPIRY;
 
-  if (!rawExpiry) {
-    return '7d';
-  }
-
-  if (/^\d+$/.test(rawExpiry)) {
-    return Number(rawExpiry);
-  }
-
-  if (/^\d+(\.\d+)?\s*(ms|s|m|h|d|w|y)$/i.test(rawExpiry)) {
-    return rawExpiry;
-  }
-
-  if (/^\d+\s+(milliseconds?|seconds?|minutes?|hours?|days?|weeks?|years?)$/i.test(rawExpiry)) {
-    return rawExpiry;
+  if (typeof expiry === 'string' && expiry.trim()) {
+    return expiry.trim();
   }
 
   return '7d';
 }
 
 function generateToken(user) {
-  const payload = {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-    name: user.name,
-  };
-
-  try {
-    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: resolveJwtExpiry() });
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('expiresIn')) {
-      return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
-    }
-
-    throw error;
-  }
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: getJwtExpiry() }
+  );
 }
 
 async function authenticate(req, res, next) {
