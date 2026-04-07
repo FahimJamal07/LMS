@@ -32,8 +32,15 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
 
 // Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+
+
+// Root check
+app.get('/' || '/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'LMS Backend',
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Error handler
