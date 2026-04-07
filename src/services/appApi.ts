@@ -55,6 +55,24 @@ const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000/api';
 const authTokenKey = 'leaveflow.token';
 
+class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+function getConflictMessage(path: string, serverMessage?: string) {
+  if (path === '/auth/register') {
+    return 'An account with this email already exists. Please sign in instead.';
+  }
+
+  return serverMessage ?? 'Conflict detected. Please refresh and try again.';
+}
+
 function hasWindow() {
   return typeof window !== 'undefined';
 }
@@ -95,7 +113,12 @@ async function fetchJson<T>(path: string, options: RequestInit = {}): Promise<T>
 
   if (!response.ok) {
     const errorBody = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new Error(errorBody?.error ?? `Request failed with status ${response.status}`);
+
+    if (response.status === 409) {
+      throw new ApiError(getConflictMessage(path, errorBody?.error), response.status);
+    }
+
+    throw new ApiError(errorBody?.error ?? `Request failed with status ${response.status}`, response.status);
   }
 
   return (await response.json()) as T;
