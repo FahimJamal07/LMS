@@ -6,17 +6,32 @@ const net = require('net');
 const { execSync } = require('child_process');
 const os = require('os');
 
-const db = require('./config/db');
-const authRoutes = require('./routes/auth');
-const leaveRoutes = require('./routes/leave');
-const adminRoutes = require('./routes/admin');
-const notificationRoutes = require('./routes/notifications');
-const errorHandler = require('./middleware/errorHandler');
+const db = require('../config/db');
+const authRoutes = require('./auth');
+const leaveRoutes = require('./leave');
+const adminRoutes = require('./admin');
+const notificationRoutes = require('./notifications');
+const errorHandler = require('../middleware/errorHandler');
 
 const app = express();
 
+const allowedOrigins = (process.env.CORS_ORIGIN || process.env.CLIENT_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Not allowed by CORS'));
+    },
+  }),
+);
 app.use(express.json());
 
 // Routes
